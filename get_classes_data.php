@@ -1,42 +1,103 @@
 <?php
-// 載入db.php來連結資料庫
 require_once 'db.php';
-$return = ['content' => '', 'error' => ''];
 
-// 設置一個空陣列來放資料
-$data = array();
-// sql語法存在變數中
-$sql = "SELECT * FROM `dnd5e_classes`";
+$functionName = '';
+$funcParam = '';
+$type = (isset($_GET['type']) && $_GET['type'] != '') ? $_GET['type'] : '';
+$id = (isset($_GET['id']) && $_GET['id'] != '') ? $_GET['id'] : '';
 
-// 用mysqli_query方法執行(sql語法)將結果存在變數中
-$result = mysqli_query($db_connect,$sql);
+switch($type)
+{
+    case 'classes':
+        $functionName = 'getClasses';
+        $funcParam = $id;
+        break;
+}
 
-// 如果有資料
-if ($result) {
-    // mysqli_num_rows方法可以回傳我們結果總共有幾筆資料
-    if (mysqli_num_rows($result)>0) {
-        // 取得大於0代表有資料
-        // while迴圈會根據資料數量，決定跑的次數
-        // mysqli_fetch_assoc方法可取得一筆值
-        while ($row = mysqli_fetch_assoc($result)) {
-            // 每跑一次迴圈就抓一筆值，最後放進data陣列中
-            $data[] = $row;
+if($functionName != '')
+{
+    $return = call_user_func($functionName, $funcParam);
+    echo json_encode($return);
+}
+
+function getClasses($class)
+{
+    global $db_connect;
+
+    $return = array();
+    $data = array();
+
+    $sql = "SELECT * FROM `dnd5e_classes` WHERE class = '$class'";
+    $result = mysqli_query($db_connect,$sql);
+    if ($result) 
+    {
+        if (mysqli_num_rows($result)>0) 
+        {
+            while ($row = mysqli_fetch_assoc($result)) 
+            {
+                $data[] = $row;
+            }
         }
+        mysqli_free_result($result);
     }
-    // 釋放資料庫查到的記憶體
-    mysqli_free_result($result);
+
+    if(isset($data[0]) && count($data[0]) > 0)
+    {
+        $data = $data[0];
+        
+        $temp = array();
+        $temp['class'] = (isset($data['class'])) ? $data['class'] : '';
+        $temp['name'] = (isset($data['name'])) ? $data['name'] : '';
+        $temp['intro'] = (isset($data['intro'])) ? $data['intro'] : '';
+        $temp['description'] = (isset($data['description'])) ? $data['description'] : '';
+
+        $temp_basic = array();
+        $temp_basic["hp"]["dice"] = "";
+        $temp_basic["hp"]["stand"] = "";
+
+        if(isset($data['hp_dice']) && $data['hp_dice'] != '')
+        {
+            $temp_basic["hp"]["dice"] = $data['hp_dice'];
+            $temp_basic["hp"]["stand"] = ceil((1 + intval($data['hp_dice'])) / 2);
+        }
+        
+        $temp_basic["prof"]["armor"] = (isset($data['prof_armor']) && $data['prof_armor'] != '') ? explode('|', $data['prof_armor']) : array();
+        $temp_basic["prof"]["weapon"] = (isset($data['prof_weapon']) && $data['prof_weapon'] != '') ? explode('|', $data['prof_weapon']) : array();
+        $temp_basic["prof"]["tool"] = (isset($data['prof_tool']) && $data['prof_tool'] != '') ? explode('|', $data['prof_tool']) : array();
+        $temp_basic["prof"]["saving_throw"] = (isset($data['prof_saving_throw']) && $data['prof_saving_throw'] != '') ? explode('|', $data['prof_saving_throw']) : array();
+        $temp_basic["prof"]["skill"]['choice'] = (isset($data['prof_skill']) && $data['prof_skill'] != '') ? explode('|', $data['prof_skill']) : array();
+        $temp_basic["prof"]["skill"]['choice_num'] = (isset($data['prof_skill_choice_num']) && $data['prof_skill_choice_num'] != '') ? explode('|', $data['prof_skill_choice_num']) : array();
+
+        if(isset($data['start_equipment']) && $data['start_equipment'] != '')
+        {
+            $choice = array();
+            $choice_list = explode('|', $data['start_equipment']);
+            if(count($choice_list) > 0)
+            {
+                foreach($choice_list as $choice_item)
+                {
+                    $choice_group = explode(',', $choice_item);
+                    if(count($choice_group) == 2)
+                    {
+                        $twmp_choice = array();
+                        $twmp_choice['a'] = $choice_group[0];
+                        $twmp_choice['b'] = $choice_group[1];
+
+                        $choice[] = $twmp_choice;
+                    }
+                }
+            }
+            $temp_basic["start_equipment"]["choice"] = $choice;
+        }
+
+        $temp_basic["start_equipment"]["start_gold"]["dice"] = (isset($data['start_gold_dice']) && $data['start_gold_dice'] != '') ? $data['start_gold_dice'] : '';
+        $temp_basic["start_equipment"]["start_gold"]["dice_num"] = (isset($data['start_gold_dice_num']) && $data['start_gold_dice_num'] != '') ? $data['start_gold_dice_num'] : '';
+        $temp_basic["start_equipment"]["start_gold"]["magn"] = (isset($data['start_gold_magn']) && $data['start_gold_magn'] != '') ? $data['start_gold_magn'] : '';
+
+        $temp['basic'] = $temp_basic;
+        $return = $temp;
+    }
+
+    return $return;
 }
-else {
-    echo "{$sql} 語法執行失敗，錯誤訊息: " . mysqli_error($db_connect);
-}
-// 處理完後印出資料
-if(!empty($result)){
-    // 如果結果不為空，就利用print_r方法印出資料
-    $return['content'] = $data;
-}
-else {
-    // 為空表示沒資料
-    $return['error'] = "查無資料";
-}
-echo json_encode($return);
 ?>
