@@ -31,27 +31,28 @@ function getClasses($class)
     $result = mysqli_query($db_connect,$sql);
     if ($result) 
     {
-        if (mysqli_num_rows($result)>0) 
+        if (mysqli_num_rows($result)==1) 
         {
             while ($row = mysqli_fetch_assoc($result)) 
             {
-                $data[] = $row;
+                $data = $row;
             }
         }
         mysqli_free_result($result);
     }
 
-    if(isset($data[0]) && count($data[0]) > 0)
+    if(!empty($data))
     {
-        $data = $data[0];
-        
         $temp = array();
+        $temp_basic = array();
+		$temp_level_features = array();
+		
         $temp['class'] = (isset($data['class'])) ? $data['class'] : '';
         $temp['name'] = (isset($data['name'])) ? $data['name'] : '';
         $temp['intro'] = (isset($data['intro'])) ? $data['intro'] : '';
         $temp['description'] = (isset($data['description'])) ? $data['description'] : '';
 
-        $temp_basic = array();
+		// basic
         $temp_basic["hp"]["dice"] = "";
         $temp_basic["hp"]["stand"] = "";
 
@@ -95,6 +96,48 @@ function getClasses($class)
         $temp_basic["start_equipment"]["start_gold"]["magn"] = (isset($data['start_gold_magn']) && $data['start_gold_magn'] != '') ? $data['start_gold_magn'] : '';
 
         $temp['basic'] = $temp_basic;
+
+		// level features	
+		$level_features = array();	
+		
+		$level_features_sql = "SELECT * FROM `dnd5e_classes_features` WHERE apper_class = '$class' ORDER BY level ASC";
+		$level_features_result = mysqli_query($db_connect,$level_features_sql);
+		
+		if ($level_features_result) 
+		{
+			if (mysqli_num_rows($level_features_result)>0) 
+			{
+				while ($level_features_row = mysqli_fetch_assoc($level_features_result)) 
+				{
+					$level_features[] = $level_features_row;
+				}
+			}
+			mysqli_free_result($level_features_result);
+		}
+		
+		if(count($level_features) > 0)
+		{
+			foreach($level_features as $level_feature)
+			{
+				$level = $level_feature['level'];
+				
+				$temp_feature = array();
+				$temp_feature['title'] = (isset($level_feature['name']) && $level_feature['name'] != '') ? $level_feature['name'] : '';
+				$temp_feature['description'] = (isset($level_feature['description']) && $level_feature['description'] != '') ? $level_feature['description'] : '';
+				
+				if(isset($level_feature['dc_basic']) && $level_feature['dc_basic'] > 0)
+				{
+					$temp_feature['dc']['basic'] = $level_feature['dc_basic'];
+					$temp_feature['dc']['ability_mod'] = $level_feature['dc_ability_mod'];
+					$temp_feature['dc']['need_pb'] = ($level_feature['dc_need_pb'] == 'Y') ? $level_feature['dc_need_pb'] : 'N';
+				}
+				
+				$temp_level_features[$level]['levelitems'][] = $temp_feature;
+			}
+		}
+	
+        $temp['levels'] = $temp_level_features;
+		
         $return = $temp;
     }
 
