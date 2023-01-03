@@ -9,6 +9,9 @@ $id = (isset($_GET['id']) && $_GET['id'] != '') ? $_GET['id'] : '';
 
 switch($type)
 {
+    case 'classeslist':
+        $functionName = 'getClassesList';
+        break;
     case 'classes':
         $functionName = 'getClasses';
         $funcParam = $id;
@@ -19,6 +22,40 @@ if($functionName != '')
 {
     $return = call_user_func($functionName, $funcParam);
     echo json_encode($return);
+}
+
+function getClassesList()
+{
+    global $db_connect;
+
+    $return = array();
+    $data = array();
+
+    $sql = "SELECT c.class as class, c.name as name FROM `dnd5e_classes` as c ORDER BY c.class";
+    $result = mysqli_query($db_connect,$sql);
+    if ($result) 
+    {
+        if (mysqli_num_rows($result)==1) 
+        {
+            while ($row = mysqli_fetch_assoc($result)) 
+            {
+                $data = $row;
+            }
+        }
+        mysqli_free_result($result);
+    }
+
+    if(!empty($data))
+    {
+        $temp = array();
+		
+        $temp['key'] = (isset($data['class'])) ? $data['class'] : '';
+        $temp['name'] = (isset($data['name'])) ? $data['name'] : '';
+		
+		$return[] = $temp;
+    }
+
+    return $return;
 }
 
 function getClasses($class)
@@ -44,9 +81,6 @@ function getClasses($class)
 
     if(!empty($data))
     {
-        $sublist = array();
-        $sublist_id = array();
-
         $temp = array();
         $temp_basic = array();
 		$temp_level_features = array();
@@ -128,6 +162,7 @@ function getClasses($class)
 				$level = $level_feature['level'];
 				
 				$temp_feature = array();
+				$temp_feature['fid'] = $level_feature['id'];
 				$temp_feature['title'] = (isset($level_feature['name']) && $level_feature['name'] != '') ? $level_feature['name'] : '';
 				$temp_feature['description'] = (isset($level_feature['description']) && $level_feature['description'] != '') ? split_section($level_feature['description']) : [];
 				$temp_feature['replace_cfid'] = (isset($level_feature['replace_cfid']) && $level_feature['replace_cfid'] != '') ? explode('|', $level_feature['replace_cfid']) : [];
@@ -204,6 +239,7 @@ function getClasses($class)
                             $level = $subclasses_feature['level'];
                         
                             $temp_feature = array();
+							$temp_feature['fid'] = $subclasses_feature['id'];
                             $temp_feature['title'] = (isset($subclasses_feature['name']) && $subclasses_feature['name'] != '') ? $subclasses_feature['name'] : '';
                             $temp_feature['description'] = (isset($subclasses_feature['description']) && $subclasses_feature['description'] != '') ? split_section($subclasses_feature['description']) : [];
                             $temp_feature['replace_cfid'] = (isset($subclasses_feature['replace_cfid']) && $subclasses_feature['replace_cfid'] != '') ? explode('|', $subclasses_feature['replace_cfid']) : [];
