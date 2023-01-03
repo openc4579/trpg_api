@@ -65,7 +65,7 @@ function getClasses($class)
     $return = array();
     $data = array();
 
-    $sql = "SELECT c.class as class, c.name as name, c.intro as intro, c.description as description, c.prof_bonus as prof_bonus, c.hp_dice as hp_dice, c.prof_armor as prof_armor, c.prof_weapon as prof_weapon, c.prof_tool as prof_tool, c.prof_saving_throw as prof_saving_throw, c.prof_skill as prof_skill, c.prof_skill_choice_num as prof_skill_choice_num, c.start_equipment as start_equipment, c.start_gold_dice as start_gold_dice, c.start_gold_dice_num as start_gold_dice_num, c.start_gold_magn as start_gold_magn, GROUP_CONCAT(s.subclass) as subclasses, GROUP_CONCAT(s.name) as subclasses_name  FROM  `dnd5e_classes` as c LEFT JOIN `dnd5e_subclasses` as s ON c.class = s.parent_class WHERE c.class = '$class' GROUP BY s.parent_class";
+    $sql = "SELECT c.class as class, c.name as name, c.intro as intro, c.description as description, c.prof_bonus as prof_bonus, c.hp_dice as hp_dice, c.prof_armor as prof_armor, c.prof_weapon as prof_weapon, c.prof_tool as prof_tool, c.prof_saving_throw as prof_saving_throw, c.prof_skill as prof_skill, c.prof_skill_choice_num as prof_skill_choice_num, c.start_equipment as start_equipment, c.start_gold_dice as start_gold_dice, c.start_gold_dice_num as start_gold_dice_num, c.start_gold_magn as start_gold_magn, GROUP_CONCAT(s.subclass) as subclasses, GROUP_CONCAT(s.name) as subclasses_name  FROM  `dnd5e_classes` as c LEFT JOIN `dnd5e_subclasses` as s ON c.class = s.parent_class WHERE c.class = '$class' GROUP BY s.parent_class ORDER BY c.class";
     $result = mysqli_query($db_connect,$sql);
     if ($result) 
     {
@@ -213,7 +213,7 @@ function getClasses($class)
 
                 $subclasses_features = array();	
             
-                $subclasses_features_sql = "SELECT * FROM `dnd5e_classes_features` WHERE apper_class in ('".implode("', '", $subclasses)."') ORDER BY level ASC";
+                $subclasses_features_sql = "SELECT * FROM `dnd5e_classes_features` WHERE apper_class in ('".implode("', '", $subclasses)."') ORDER BY apper_class ASC level ASC";
                 $subclasses_features_result = mysqli_query($db_connect,$subclasses_features_sql);
                 
                 if ($subclasses_features_result) 
