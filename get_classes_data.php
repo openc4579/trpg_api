@@ -91,7 +91,7 @@ function getClasses($class)
 		
         $temp['class'] = (isset($data['class'])) ? $data['class'] : '';
         $temp['name'] = (isset($data['name'])) ? $data['name'] : '';
-        $temp['intro'] = (isset($data['intro'])) ? $data['intro'] : '';
+        $temp['intro'] = (isset($data['intro'])) ? array_filter(split_section($data['intro'])) : [];
         $temp['description'] = (isset($data['description'])) ? split_section($data['description']) : [];
         $temp['prof_bonus'] = (isset($data['prof_bonus'])) ? explode('|', $data['prof_bonus']) : [];
 
