@@ -35,24 +35,27 @@ function getClassesList()
     $result = mysqli_query($db_connect,$sql);
     if ($result) 
     {
-        if (mysqli_num_rows($result)==1) 
+        if (mysqli_num_rows($result)>0) 
         {
             while ($row = mysqli_fetch_assoc($result)) 
             {
-                $data = $row;
+                $data[] = $row;
             }
         }
         mysqli_free_result($result);
     }
 
-    if(!empty($data))
+    if(count($data) > 0)
     {
-        $temp = array();
-		
-        $temp['key'] = (isset($data['class'])) ? $data['class'] : '';
-        $temp['name'] = (isset($data['name'])) ? $data['name'] : '';
-		
-		$return[] = $temp;
+		foreach($data as $class_item)
+		{
+			$temp = array();
+			
+			$temp['key'] = (isset($class_item['class'])) ? $class_item['class'] : '';
+			$temp['name'] = (isset($class_item['name'])) ? $class_item['name'] : '';
+			
+			$return[] = $temp;
+		}
     }
 
     return $return;
@@ -118,14 +121,19 @@ function getClasses($class)
                 foreach($choice_list as $choice_item)
                 {
                     $choice_group = explode(',', $choice_item);
+					$twmp_choice = array();
+					
                     if(count($choice_group) == 2)
                     {
-                        $twmp_choice = array();
                         $twmp_choice['a'] = $choice_group[0];
                         $twmp_choice['b'] = $choice_group[1];
-
-                        $choice[] = $twmp_choice;
                     }
+					else
+					{
+                        $twmp_choice['a'] = $choice_group[0];
+					}
+
+                    $choice[] = $twmp_choice;
                 }
             }
             $temp_basic["start_equipment"]["choice"] = $choice;
@@ -140,7 +148,7 @@ function getClasses($class)
 		// level features	
 		$level_features = array();	
 		
-		$level_features_sql = "SELECT * FROM `dnd5e_classes_features` as cf WHERE apper_class = '$class' ORDER BY level ASC";
+		$level_features_sql = "SELECT * FROM `dnd5e_features` as cf WHERE type = 'class' AND apper_key = '$class' ORDER BY level ASC";
 		$level_features_result = mysqli_query($db_connect,$level_features_sql);
 		
 		if ($level_features_result) 
@@ -165,7 +173,7 @@ function getClasses($class)
 				$temp_feature['fid'] = $level_feature['id'];
 				$temp_feature['title'] = (isset($level_feature['name']) && $level_feature['name'] != '') ? $level_feature['name'] : '';
 				$temp_feature['description'] = (isset($level_feature['description']) && $level_feature['description'] != '') ? split_section($level_feature['description']) : [];
-				$temp_feature['replace_cfid'] = (isset($level_feature['replace_cfid']) && $level_feature['replace_cfid'] != '') ? explode('|', $level_feature['replace_cfid']) : [];
+				$temp_feature['replace_fid'] = (isset($level_feature['replace_fid']) && $level_feature['replace_fid'] != '') ? explode('|', $level_feature['replace_fid']) : [];
 
 				if(isset($level_feature['dc_basic']) && $level_feature['dc_basic'] > 0)
 				{
@@ -190,11 +198,11 @@ function getClasses($class)
                     $temp_feature['sublist_num'] = $level_feature['sublist_choice_num'];
                 }
 				
-				$temp_level_features[$level]['levelitems'][] = $temp_feature;
+				$temp_level_features[$level]['featureitems'][] = $temp_feature;
 			}
 		}
 	
-        $temp['levels'] = $temp_level_features;
+        $temp['features'] = $temp_level_features;
         
         if(isset($data['subclasses']) && $data['subclasses'] != '' && $data['subclasses'] != null && isset($data['subclasses_name']) && $data['subclasses_name'] != '' && $data['subclasses_name'] != null)
 		{
@@ -206,14 +214,14 @@ function getClasses($class)
                 {
                     $temp_subclass_item = array();
                     $temp_subclass_item['title'] = $subclasses_name[$index];
-                    $temp_subclass_item['levels'] = array();
+                    $temp_subclass_item['features'] = array();
     
                     $temp_subclasses[$subclass] = $temp_subclass_item;
                 }
 
                 $subclasses_features = array();	
             
-                $subclasses_features_sql = "SELECT * FROM `dnd5e_classes_features` WHERE apper_class in ('".implode("', '", $subclasses)."') ORDER BY apper_class ASC level ASC";
+                $subclasses_features_sql = "SELECT * FROM `dnd5e_features` WHERE type = 'subclass' AND apper_key in ('".implode("', '", $subclasses)."') ORDER BY apper_key ASC, level ASC";
                 $subclasses_features_result = mysqli_query($db_connect,$subclasses_features_sql);
                 
                 if ($subclasses_features_result) 
@@ -232,9 +240,9 @@ function getClasses($class)
                 {
                     foreach($subclasses_features as $subclasses_feature)
                     {
-                        $subclass = $subclasses_feature['apper_class'];
+                        $subclass = $subclasses_feature['apper_key'];
                         
-                        if(isset($temp_subclasses[$subclass]['levels']))
+                        if(isset($temp_subclasses[$subclass]['features']))
                         {
                             $level = $subclasses_feature['level'];
                         
@@ -242,7 +250,7 @@ function getClasses($class)
 							$temp_feature['fid'] = $subclasses_feature['id'];
                             $temp_feature['title'] = (isset($subclasses_feature['name']) && $subclasses_feature['name'] != '') ? $subclasses_feature['name'] : '';
                             $temp_feature['description'] = (isset($subclasses_feature['description']) && $subclasses_feature['description'] != '') ? split_section($subclasses_feature['description']) : [];
-                            $temp_feature['replace_cfid'] = (isset($subclasses_feature['replace_cfid']) && $subclasses_feature['replace_cfid'] != '') ? explode('|', $subclasses_feature['replace_cfid']) : [];
+                            $temp_feature['replace_fid'] = (isset($subclasses_feature['replace_fid']) && $subclasses_feature['replace_fid'] != '') ? explode('|', $subclasses_feature['replace_fid']) : [];
                             
                             if(isset($subclasses_feature['dc_basic']) && $subclasses_feature['dc_basic'] > 0)
                             {
@@ -267,7 +275,7 @@ function getClasses($class)
                                 $temp_feature['sublist_num'] = $subclasses_feature['sublist_choice_num'];
                             }
                             
-                            $temp_subclasses[$subclass]['levels'][$level]['levelitems'][] = $temp_feature;
+                            $temp_subclasses[$subclass]['features'][$level]['featureitems'][] = $temp_feature;
                         }
                     }
                 }
