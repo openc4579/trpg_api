@@ -68,7 +68,7 @@ function getRaces($race)
     $return = array();
     $data = array();
 
-    $sql = "SELECT r.race as race, r.name as name, r.intro as intro, r.description as description,GROUP_CONCAT(s.subrace) as subraces,GROUP_CONCAT(s.name) as subrace_name FROM  `dnd5e_races` as r LEFT JOIN `dnd5e_subraces` as s ON r.race = s.parent_race WHERE r.race = '$race' GROUP BY s.parent_race ORDER BY r.race";
+    $sql = "SELECT r.race as race, r.name as name, r.intro as intro, r.description as description, r.age as age, r.size as size, r.speed_walk as speed_walk, r.speed_climb as speed_climb, r.speed_burrow as speed_burrow, r.speed_swim as speed_swim, r.speed_fly as speed_fly, r.speed_hover as speed_hover, GROUP_CONCAT(s.subrace) as subraces,GROUP_CONCAT(s.name) as subrace_name FROM  `dnd5e_races` as r LEFT JOIN `dnd5e_subraces` as s ON r.race = s.parent_race WHERE r.race = '$race' GROUP BY s.parent_race ORDER BY r.race";
     $result = mysqli_query($db_connect,$sql);
     if ($result) 
     {
@@ -93,6 +93,19 @@ function getRaces($race)
         $temp['name'] = (isset($data['name'])) ? $data['name'] : '';
         $temp['intro'] = (isset($data['intro'])) ? $data['intro'] : '';
         $temp['description'] = (isset($data['description'])) ? split_section($data['description']) : [];
+
+		// basic
+        $temp_basic["age"] = (isset($data['age']) && $data['age'] != '') ? $data['age'] : '';
+        $temp_basic["size"] = (isset($data['size']) && $data['size'] != '') ? $data['size'] : '';
+
+        if(isset($data['speed_walk']) && $data['speed_walk'] != '') $temp_basic["speed"]["walk"] = $data['speed_walk'];
+        if(isset($data['speed_climb']) && $data['speed_climb'] != '') $temp_basic["speed"]["climb"] = $data['speed_climb'];
+        if(isset($data['speed_burrow']) && $data['speed_burrow'] != '') $temp_basic["speed"]["burrow"] = $data['speed_burrow'];
+        if(isset($data['speed_swim']) && $data['speed_swim'] != '') $temp_basic["speed"]["swim"] = $data['speed_swim'];
+        if(isset($data['speed_fly']) && $data['speed_fly'] != '') $temp_basic["speed"]["fly"] = $data['speed_fly'];
+        if(isset($data['speed_hover']) && $data['speed_hover'] != '') $temp_basic["speed"]["hover"] = $data['speed_hover'];
+
+        $temp['basic'] = $temp_basic;
 
 		// race features	
 		$race_features = array();	
