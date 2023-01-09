@@ -68,7 +68,7 @@ function getRaces($race)
     $return = array();
     $data = array();
 
-    $sql = "SELECT r.race as race, r.name as name, r.intro as intro, r.description as description, r.age as age, r.size as size, r.speed_walk as speed_walk, r.speed_climb as speed_climb, r.speed_burrow as speed_burrow, r.speed_swim as speed_swim, r.speed_fly as speed_fly, r.speed_hover as speed_hover, GROUP_CONCAT(s.subrace) as subraces,GROUP_CONCAT(s.name) as subrace_name FROM  `dnd5e_races` as r LEFT JOIN `dnd5e_subraces` as s ON r.race = s.parent_race WHERE r.race = '$race' GROUP BY s.parent_race ORDER BY r.race";
+    $sql = "SELECT r.race as race, r.name as name, r.intro as intro, r.description as description, r.age as age, r.size as size, r.speed_walk as speed_walk, r.speed_climb as speed_climb, r.speed_burrow as speed_burrow, r.speed_swim as speed_swim, r.speed_fly as speed_fly, r.speed_hover as speed_hover, GROUP_CONCAT(s.subrace) as subraces FROM  `dnd5e_races` as r LEFT JOIN `dnd5e_subraces` as s ON r.race = s.parent_race WHERE r.race = '$race' GROUP BY s.parent_race ORDER BY r.race";
     $result = mysqli_query($db_connect,$sql);
     if ($result) 
     {
@@ -107,45 +107,47 @@ function getRaces($race)
 
         $temp['basic'] = $temp_basic;
 
-		// race features	
-		$race_features = array();	
+		// level features	
+		$level_features = array();	
 		
-		$race_features_sql = "SELECT * FROM `dnd5e_features` as cf WHERE type = 'race' AND apper_key = '$race' ORDER BY level ASC";
-		$race_features_result = mysqli_query($db_connect,$race_features_sql);
+		$level_features_sql = "SELECT * FROM `dnd5e_features` as cf WHERE type = 'race' AND apper_key = '$race' ORDER BY level ASC";
+		$level_features_result = mysqli_query($db_connect,$level_features_sql);
 		
-		if ($race_features_result) 
+		if ($level_features_result) 
 		{
-			if (mysqli_num_rows($race_features_result)>0) 
+			if (mysqli_num_rows($level_features_result)>0) 
 			{
-				while ($race_features_row = mysqli_fetch_assoc($race_features_result)) 
+				while ($level_features_row = mysqli_fetch_assoc($level_features_result)) 
 				{
-					$race_features[] = $race_features_row;
+					$level_features[] = $level_features_row;
 				}
 			}
-			mysqli_free_result($race_features_result);
+			mysqli_free_result($level_features_result);
 		}
 		
-		if(count($race_features) > 0)
+		if(count($level_features) > 0)
 		{
-			foreach($race_features as $race_feature)
+			foreach($level_features as $level_feature)
 			{
+				$level = $level_feature['level'];
+				
 				$temp_feature = array();
-				$temp_feature['fid'] = $race_feature['id'];
-				$temp_feature['title'] = (isset($race_feature['name']) && $race_feature['name'] != '') ? $race_feature['name'] : '';
-				$temp_feature['description'] = (isset($race_feature['description']) && $race_feature['description'] != '') ? split_section($race_feature['description']) : [];
-				$temp_feature['replace_fid'] = (isset($race_feature['replace_fid']) && $race_feature['replace_fid'] != '') ? explode('|', $race_feature['replace_fid']) : [];
+				$temp_feature['fid'] = $level_feature['id'];
+				$temp_feature['title'] = (isset($level_feature['name']) && $level_feature['name'] != '') ? $level_feature['name'] : '';
+				$temp_feature['description'] = (isset($level_feature['description']) && $level_feature['description'] != '') ? split_section($level_feature['description']) : [];
+				$temp_feature['replace_fid'] = (isset($level_feature['replace_fid']) && $level_feature['replace_fid'] != '') ? explode('|', $level_feature['replace_fid']) : [];
 
-				if(isset($race_feature['dc_basic']) && $race_feature['dc_basic'] > 0)
+				if(isset($level_feature['dc_basic']) && $level_feature['dc_basic'] > 0)
 				{
-					$temp_feature['dc']['basic'] = $race_feature['dc_basic'];
-					$temp_feature['dc']['ability_mod'] = $race_feature['dc_ability_mod'];
-					$temp_feature['dc']['need_pb'] = ($race_feature['dc_need_pb'] == 'Y') ? $race_feature['dc_need_pb'] : 'N';
+					$temp_feature['dc']['basic'] = $level_feature['dc_basic'];
+					$temp_feature['dc']['ability_mod'] = $level_feature['dc_ability_mod'];
+					$temp_feature['dc']['need_pb'] = ($level_feature['dc_need_pb'] == 'Y') ? $level_feature['dc_need_pb'] : 'N';
 				}
 
-                // race feature sublist
-                if(isset($race_feature['sublist_choices']) && $race_feature['sublist_choices'] != '' && isset($race_feature['sublist_choice_num']) && $race_feature['sublist_choice_num'] != '')
+                // level feature sublist
+                if(isset($level_feature['sublist_choices']) && $level_feature['sublist_choices'] != '' && isset($level_feature['sublist_choice_num']) && $level_feature['sublist_choice_num'] != '')
                 {
-                    $sublist_choices = json_decode($race_feature['sublist_choices']);
+                    $sublist_choices = json_decode($level_feature['sublist_choices']);
 
                     foreach($sublist_choices as $sublist_choice)
                     {
@@ -155,88 +157,112 @@ function getRaces($race)
                         $temp_feature['sublist'][] = $choice;
                     }
 
-                    $temp_feature['sublist_num'] = $race_feature['sublist_choice_num'];
+                    $temp_feature['sublist_num'] = $level_feature['sublist_choice_num'];
                 }
 				
-				$temp_race_features['featureitems'][] = $temp_feature;
+				$temp_race_features[$level]['featureitems'][] = $temp_feature;
 			}
 		}
 	
         $temp['features'] = $temp_race_features;
-        
-        if(isset($data['subraces']) && $data['subraces'] != '' && $data['subraces'] != null && isset($data['subraces_name']) && $data['subraces_name'] != '' && $data['subraces_name'] != null)
+		
+		// subrace
+        $subraces_list = explode(',', $data['subraces']);
+      
+        if(count($subraces_list) > 0)
 		{
-            $subraces = explode(',', $data['subraces']);
-            $subraces_name = explode(',', $data['subraces_name']);
-            if(count($subraces) > 0 && count($subraces) == count($subraces_name))
-            {
-                foreach($subraces as $index => $subrace)
-                {
-                    $temp_subrace_item = array();
-                    $temp_subrace_item['title'] = $subraces_name[$index];
-                    $temp_subrace_item['features'] = array();
+			$subraces = array();	
+		
+			$subraces_sql = "SELECT * FROM `dnd5e_subraces` as cf WHERE subrace in ('".implode("', '", $subraces_list)."') ORDER BY subrace";
+			$subraces_result = mysqli_query($db_connect,$subraces_sql);
+		
+			if ($subraces_result) 
+			{
+				if (mysqli_num_rows($subraces_result)>0) 
+				{
+					while ($subraces_result_row = mysqli_fetch_assoc($subraces_result)) 
+					{
+						$subraces[] = $subraces_result_row;
+					}
+				}
+				mysqli_free_result($subraces_result);
+			}
+		
+			if(count($subraces) > 0)
+			{
+				foreach($subraces as $subrace_item)
+				{
+					$temp_subrace_item = array();
+					
+					$subrace = $subrace_item['subrace'];
+					
+					$temp_subrace_item['title'] = $subrace_item['name'];
+					$temp_subrace_item['description'] = $subrace_item['description'];
+					$temp_subrace_item['features'] = array();
     
                     $temp_subraces[$subrace] = $temp_subrace_item;
-                }
+				}
+			}
 
-                $subraces_features = array();	
-            
-                $subraces_features_sql = "SELECT * FROM `dnd5e_features` WHERE type = 'subrace' AND apper_key in ('".implode("', '", $subraces)."') ORDER BY apper_key ASC, level ASC";
-                $subraces_features_result = mysqli_query($db_connect,$subraces_features_sql);
-                
-                if ($subraces_features_result) 
-                {
-                    if (mysqli_num_rows($subraces_features_result)>0) 
-                    {
-                        while ($subraces_features_row = mysqli_fetch_assoc($subraces_features_result)) 
-                        {
-                            $subraces_features[] = $subraces_features_row;
-                        }
-                    }
-                    mysqli_free_result($subraces_features_result);
-                }
+			$subraces_features = array();	
+		
+			$subraces_features_sql = "SELECT * FROM `dnd5e_features` WHERE type = 'subrace' AND apper_key in ('".implode("', '", $subraces_list)."') ORDER BY apper_key ASC, level ASC";
+			$subraces_features_result = mysqli_query($db_connect,$subraces_features_sql);
+			
+			if ($subraces_features_result) 
+			{
+				if (mysqli_num_rows($subraces_features_result)>0) 
+				{
+					while ($subraces_features_row = mysqli_fetch_assoc($subraces_features_result)) 
+					{
+						$subraces_features[] = $subraces_features_row;
+					}
+				}
+				mysqli_free_result($subraces_features_result);
+			}
 
-                if(count($subraces_features) > 0)
-                {
-                    foreach($subraces_features as $subraces_feature)
-                    {
-                        $subrace = $subraces_feature['apper_key'];
-                        
-                        if(isset($temp_subraces[$subrace]['features']))
-                        {
-                            $temp_feature = array();
-							$temp_feature['fid'] = $subraces_feature['id'];
-                            $temp_feature['title'] = (isset($subraces_feature['name']) && $subraces_feature['name'] != '') ? $subraces_feature['name'] : '';
-                            $temp_feature['description'] = (isset($subraces_feature['description']) && $subraces_feature['description'] != '') ? split_section($subraces_feature['description']) : [];
-                            $temp_feature['replace_fid'] = (isset($subraces_feature['replace_fid']) && $subraces_feature['replace_fid'] != '') ? explode('|', $subraces_feature['replace_fid']) : [];
-                            
-                            if(isset($subraces_feature['dc_basic']) && $subraces_feature['dc_basic'] > 0)
-                            {
-                                $temp_feature['dc']['basic'] = $subraces_feature['dc_basic'];
-                                $temp_feature['dc']['ability_mod'] = $subraces_feature['dc_ability_mod'];
-                                $temp_feature['dc']['need_pb'] = ($subraces_feature['dc_need_pb'] == 'Y') ? $subraces_feature['dc_need_pb'] : 'N';
-                            }
+			if(count($subraces_features) > 0)
+			{
+				foreach($subraces_features as $subraces_feature)
+				{
+					$subrace = $subraces_feature['apper_key'];
+					
+					if(isset($temp_subraces[$subrace]['features']))
+					{
+						$level = $subraces_feature['level'];
+					
+						$temp_feature = array();
+						$temp_feature['fid'] = $subraces_feature['id'];
+						$temp_feature['title'] = (isset($subraces_feature['name']) && $subraces_feature['name'] != '') ? $subraces_feature['name'] : '';
+						$temp_feature['description'] = (isset($subraces_feature['description']) && $subraces_feature['description'] != '') ? split_section($subraces_feature['description']) : [];
+						$temp_feature['replace_fid'] = (isset($subraces_feature['replace_fid']) && $subraces_feature['replace_fid'] != '') ? explode('|', $subraces_feature['replace_fid']) : [];
+						
+						if(isset($subraces_feature['dc_basic']) && $subraces_feature['dc_basic'] > 0)
+						{
+							$temp_feature['dc']['basic'] = $subraces_feature['dc_basic'];
+							$temp_feature['dc']['ability_mod'] = $subraces_feature['dc_ability_mod'];
+							$temp_feature['dc']['need_pb'] = ($subraces_feature['dc_need_pb'] == 'Y') ? $subraces_feature['dc_need_pb'] : 'N';
+						}
 
-                            // subrace feature sublist
-                            if(isset($subraces_feature['sublist_choices']) && $subraces_feature['sublist_choices'] != '' && isset($subraces_feature['sublist_choice_num']) && $subraces_feature['sublist_choice_num'] != '')
-                            {
-                                $sublist_choices = json_decode($subraces_feature['sublist_choices']);
-            
-                                foreach($sublist_choices as $sublist_choice)
-                                {
-                                    $choice = json_decode(json_encode($sublist_choice), true);
-                                    $choice['subdesc'] = split_section($choice['subdesc']);
-            
-                                    $temp_feature['sublist'][] = $choice;
-                                }
-            
-                                $temp_feature['sublist_num'] = $subraces_feature['sublist_choice_num'];
-                            }
-                            
-                            $temp_subraces[$subrace]['features']['featureitems'][] = $temp_feature;
-                        }
-                    }
-                }
+						// subrace feature sublist
+						if(isset($subraces_feature['sublist_choices']) && $subraces_feature['sublist_choices'] != '' && isset($subraces_feature['sublist_choice_num']) && $subraces_feature['sublist_choice_num'] != '')
+						{
+							$sublist_choices = json_decode($subraces_feature['sublist_choices']);
+		
+							foreach($sublist_choices as $sublist_choice)
+							{
+								$choice = json_decode(json_encode($sublist_choice), true);
+								$choice['subdesc'] = split_section($choice['subdesc']);
+		
+								$temp_feature['sublist'][] = $choice;
+							}
+		
+							$temp_feature['sublist_num'] = $subraces_feature['sublist_choice_num'];
+						}
+						
+						$temp_subraces[$subrace]['features'][$level]['featureitems'][] = $temp_feature;
+					}
+				}
             }
 		}
         
