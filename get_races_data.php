@@ -68,7 +68,7 @@ function getRaces($race)
     $return = array();
     $data = array();
 
-    $sql = "SELECT r.race as race, r.name as name, r.intro as intro, r.description as description, r.age as age, r.size as size, r.speed_walk as speed_walk, r.speed_climb as speed_climb, r.speed_burrow as speed_burrow, r.speed_swim as speed_swim, r.speed_fly as speed_fly, r.speed_hover as speed_hover, r.darkvision as darkvision, r.prof_skills as prof_skills, r.prof_weapon as prof_weapon, GROUP_CONCAT(s.subrace) as subraces FROM  `dnd5e_races` as r LEFT JOIN `dnd5e_subraces` as s ON r.race = s.parent_race WHERE r.race = '$race' GROUP BY s.parent_race ORDER BY r.race";
+    $sql = "SELECT r.race as race, r.name as name, r.intro as intro, r.description as description, r.ability as ability, r.age as age, r.size as size, r.speed_walk as speed_walk, r.speed_climb as speed_climb, r.speed_burrow as speed_burrow, r.speed_swim as speed_swim, r.speed_fly as speed_fly, r.speed_hover as speed_hover, r.darkvision as darkvision, r.prof_skills as prof_skills, r.prof_weapon as prof_weapon, GROUP_CONCAT(s.subrace) as subraces FROM  `dnd5e_races` as r LEFT JOIN `dnd5e_subraces` as s ON r.race = s.parent_race WHERE r.race = '$race' GROUP BY s.parent_race ORDER BY r.race";
     $result = mysqli_query($db_connect,$sql);
     if ($result) 
     {
@@ -91,10 +91,13 @@ function getRaces($race)
 		
         $temp['race'] = (isset($data['race'])) ? $data['race'] : '';
         $temp['name'] = (isset($data['name'])) ? $data['name'] : '';
-        $temp['intro'] = (isset($data['intro'])) ? $data['intro'] : '';
+        $temp['intro'] = (isset($data['intro'])) ? split_section($data['intro']) : [];
         $temp['description'] = (isset($data['description'])) ? split_section($data['description']) : [];
 
 		// basic
+        $temp_basic["ability"] = array();
+        $temp_basic["ability"]['choose'] = array("from" => array("str", "dex", "con", "int", "wis", "cha"), "num" => 3);
+        if(isset($data['ability']) && $data['ability'] != '') $temp_basic["ability"] = array_merge($temp_basic["ability"], json_decode($data['ability'], true)) ;
         $temp_basic["age"] = (isset($data['age']) && $data['age'] != '') ? $data['age'] : '';
         $temp_basic["size"] = (isset($data['size']) && $data['size'] != '') ? $data['size'] : '';
 
@@ -213,7 +216,7 @@ function getRaces($race)
 					$temp_subrace_item['speed'] = ($subrace_item['speed'] != null) ? json_decode($subrace_item['speed'], true) : array();
 					$temp_subrace_item['darkvision'] = ($subrace_item['darkvision'] != null) ? json_decode($subrace_item['darkvision'], true) : array();
 					$temp_subrace_item['prof'] = ($subrace_item['prof'] != null) ? json_decode($subrace_item['prof'], true) : array();
-					$temp_subrace_item['mod_ability'] = ($subrace_item['mod_ability'] != null) ? json_decode($subrace_item['mod_ability'], true) : array();
+					$temp_subrace_item['ability'] = ($subrace_item['ability'] != null) ? json_decode($subrace_item['ability'], true) : array();
 					$temp_subrace_item['features'] = array();
     
                     $temp_subraces[$subrace] = $temp_subrace_item;
