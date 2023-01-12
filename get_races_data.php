@@ -213,10 +213,15 @@ function getRaces($race)
 					
 					$temp_subrace_item['title'] = $subrace_item['name'];
 					$temp_subrace_item['description'] = $subrace_item['description'];
-					$temp_subrace_item['speed'] = ($subrace_item['speed'] != null) ? json_decode($subrace_item['speed'], true) : array();
-					$temp_subrace_item['darkvision'] = ($subrace_item['darkvision'] != null) ? json_decode($subrace_item['darkvision'], true) : array();
-					$temp_subrace_item['prof'] = ($subrace_item['prof'] != null) ? json_decode($subrace_item['prof'], true) : array();
-					$temp_subrace_item['ability'] = ($subrace_item['ability'] != null) ? json_decode($subrace_item['ability'], true) : array();
+
+					$temp_subrace_basic = array();
+					if($subrace_item['speed'] != null) $temp_subrace_basic['speed'] = json_decode($subrace_item['speed'], true);
+					if($subrace_item['darkvision'] != null) $temp_subrace_basic['darkvision'] = json_decode($subrace_item['darkvision'], true);
+					if($subrace_item['prof'] != null) $temp_subrace_basic['prof'] = json_decode($subrace_item['prof'], true);
+					if($subrace_item['ability'] != null) $temp_subrace_basic['ability'] = json_decode($subrace_item['ability'], true);
+
+					$temp_subrace_item['basic'] = $temp_subrace_basic ;
+
 					$temp_subrace_item['features'] = array();
     
                     $temp_subraces[$subrace] = $temp_subrace_item;
