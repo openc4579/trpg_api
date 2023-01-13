@@ -68,7 +68,7 @@ function getRaces($race)
     $return = array();
     $data = array();
 
-    $sql = "SELECT r.race as race, r.name as name, r.intro as intro, r.description as description, r.ability as ability, r.age as age, r.size as size, r.speed_walk as speed_walk, r.speed_climb as speed_climb, r.speed_burrow as speed_burrow, r.speed_swim as speed_swim, r.speed_fly as speed_fly, r.speed_hover as speed_hover, r.darkvision as darkvision, r.prof_skills as prof_skills, r.prof_weapon as prof_weapon, GROUP_CONCAT(s.subrace) as subraces FROM  `dnd5e_races` as r LEFT JOIN `dnd5e_subraces` as s ON r.race = s.parent_race WHERE r.race = '$race' GROUP BY s.parent_race ORDER BY r.race";
+    $sql = "SELECT r.race as race, r.name as name, r.intro as intro, r.description as description, r.ability as ability, r.age as age, r.size as size, r.speed as speed, r.darkvision as darkvision, r.prof as prof, r.spell as spell, GROUP_CONCAT(s.subrace) as subraces FROM  `dnd5e_races` as r LEFT JOIN `dnd5e_subraces` as s ON r.race = s.parent_race WHERE r.race = '$race' GROUP BY s.parent_race ORDER BY r.race";
     $result = mysqli_query($db_connect,$sql);
     if ($result) 
     {
@@ -101,19 +101,11 @@ function getRaces($race)
         $temp_basic["age"] = (isset($data['age']) && $data['age'] != '') ? $data['age'] : '';
         $temp_basic["size"] = (isset($data['size']) && $data['size'] != '') ? $data['size'] : '';
 
-		$temp_basic["speed"] = array();
-        if(isset($data['speed_walk']) && $data['speed_walk'] != '') $temp_basic["speed"]["walk"] = $data['speed_walk'];
-        if(isset($data['speed_climb']) && $data['speed_climb'] != '') $temp_basic["speed"]["climb"] = $data['speed_climb'];
-        if(isset($data['speed_burrow']) && $data['speed_burrow'] != '') $temp_basic["speed"]["burrow"] = $data['speed_burrow'];
-        if(isset($data['speed_swim']) && $data['speed_swim'] != '') $temp_basic["speed"]["swim"] = $data['speed_swim'];
-        if(isset($data['speed_fly']) && $data['speed_fly'] != '') $temp_basic["speed"]["fly"] = $data['speed_fly'];
-        if(isset($data['speed_hover']) && $data['speed_hover'] != '') $temp_basic["speed"]["hover"] = $data['speed_hover'];
-		
+        $temp_basic["speed"] = (isset($data['speed']) && $data['speed'] != '') ? json_decode($data['speed'], true) : array();
         $temp_basic["darkvision"] = (isset($data['darkvision']) && $data['darkvision'] != '') ? $data['darkvision'] : '';
-
-		$temp_basic["prof"] = array();
-        if(isset($data['prof_skills']) && $data['prof_skills'] != '') $temp_basic["prof"]["skills"] = $data['prof_skills'];
-        if(isset($data['prof_weapon']) && $data['prof_weapon'] != '') $temp_basic["prof"]["weapon"] = $data['prof_weapon'];
+		
+        if(isset($data['prof']) && $data['prof'] != '') $temp_basic["prof"] = json_decode($data['prof'], true);
+        if(isset($data['spell']) && $data['spell'] != '') $temp_basic["spell"] = json_decode($data['spell'], true);
 
 		$temp_basic["other"] = array();
         if(isset($data['resistance']) && $data['resistance'] != '') $temp_basic["other"]["resistance"] = $data['resistance'];
@@ -218,6 +210,7 @@ function getRaces($race)
 					if($subrace_item['speed'] != null) $temp_subrace_basic['speed'] = json_decode($subrace_item['speed'], true);
 					if($subrace_item['darkvision'] != null) $temp_subrace_basic['darkvision'] = json_decode($subrace_item['darkvision'], true);
 					if($subrace_item['prof'] != null) $temp_subrace_basic['prof'] = json_decode($subrace_item['prof'], true);
+					if($subrace_item['spell'] != null) $temp_subrace_basic['spell'] = json_decode($subrace_item['spell'], true);
 					if($subrace_item['ability'] != null) $temp_subrace_basic['ability'] = json_decode($subrace_item['ability'], true);
 
 					$temp_subrace_item['basic'] = $temp_subrace_basic ;
