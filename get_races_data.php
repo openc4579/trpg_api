@@ -31,7 +31,7 @@ function getRacesList()
     $return = array();
     $data = array();
 
-    $sql = "SELECT r.race as race, r.name as name FROM `dnd5e_races` as r ORDER BY r.race";
+    $sql = "SELECT r.race as race, r.name as name, s.subrace as subrace, s.name as subrace_name, r.size_type as size_type, r.darkvision as r_darkvision, r.ability as r_ability, r.speed as r_speed, r.prof as r_prof, r.spell as r_spell, r.resistance as resistance, r.immune as immune, r.immune_condition as immune_condition, s.speed as s_speed, s.darkvision as s_darkvision, s.prof as s_prof, s.spell as s_spell, s.ability as s_ability FROM `dnd5e_races` as r LEFT JOIN `dnd5e_subraces` as s ON r.race = s.parent_race ORDER BY r.race";
     $result = mysqli_query($db_connect,$sql);
     if ($result) 
     {
@@ -53,6 +53,73 @@ function getRacesList()
 			
 			$temp['key'] = (isset($race_item['race'])) ? $race_item['race'] : '';
 			$temp['name'] = (isset($race_item['name'])) ? $race_item['name'] : '';
+			$temp['subrace'] = (isset($race_item['subrace'])) ? $race_item['subrace'] : '';
+			$temp['subrace_name'] = (isset($race_item['subrace_name'])) ? $race_item['subrace_name'] : '';
+			$temp['size_type'] = (isset($race_item['size_type'])) ? $race_item['size_type'] : '';
+			$temp['darkvision'] = (isset($race_item['r_darkvision'])) ? $race_item['r_darkvision'] : '';
+			$temp['ability'] = (isset($race_item['r_ability'])) ? json_decode($race_item['r_ability'], true) : array();
+			$temp['speed'] = (isset($race_item['r_speed'])) ? json_decode($race_item['r_speed'], true) : array();
+			$temp['prof'] = (isset($race_item['r_prof'])) ? json_decode($race_item['r_prof'], true) : array();
+			$temp['spell'] = (isset($race_item['r_spell'])) ? json_decode($race_item['r_spell'], true) : array();
+			$temp['resistance'] = (isset($race_item['resistance'])) ? $race_item['resistance'] : '';
+			$temp['immune'] = (isset($race_item['immune'])) ? $race_item['immune'] : '';
+			$temp['immune_condition'] = (isset($race_item['immune_condition'])) ? $race_item['immune_condition'] : '';
+			
+			if(isset($race_item['s_speed']) && $race_item['s_speed'] !== null && $race_item['s_speed'] !== '')
+			{
+				$temp['speed'] = array_merge($temp['speed'], json_decode($race_item['s_speed'], true));
+			}
+			
+			if(isset($race_item['s_darkvision']) && $race_item['s_darkvision'] !== null && $race_item['s_darkvision'] !== '')
+			{
+				$temp['darkvision'] = $race_item['s_darkvision'];
+			}
+			
+			if(isset($race_item['s_prof']) && $race_item['s_prof'] !== null && $race_item['s_prof'] !== '')
+			{
+				$s_prof = json_decode($race_item['s_prof'], true);
+				if(count(array_keys($s_prof)) > 0)
+				{
+					foreach($s_prof as $prof_type => $prof_item)
+					{
+						if(isset($temp['prof'][$prof_type]))
+						{
+							$temp['prof'][$prof_type] = $temp['prof'][$prof_type].'|'.$prof_item;
+						}
+						else
+						{
+							$temp['prof'][$prof_type] = $prof_item;
+						}
+					}
+				}
+			}
+			
+			if(isset($race_item['s_spell']) && $race_item['s_spell'] !== null && $race_item['s_spell'] !== '')
+			{
+				$s_spell = json_decode($race_item['s_spell'], true);
+				if(count(array_keys($s_spell)) > 0)
+				{
+					foreach($s_spell as $spell_feature => $spell_feature_item)
+					{
+						if(!isset($temp['spell'][$spell_feature]))
+						{
+							$temp['spell'][$spell_feature] = $spell_feature_item;
+						}
+					}
+				}
+			}
+			
+			if(isset($race_item['s_ability']) && $race_item['s_ability'] !== null && $race_item['s_ability'] !== '')
+			{
+				$s_ability = json_decode($race_item['s_ability'], true);
+				if(count(array_keys($s_ability)) > 0)
+				{
+					foreach($s_ability as $ability_type => $ability_val)
+					{
+						$temp['ability'][$ability_type] = $ability_val;
+					}
+				}
+			}
 			
 			$return[] = $temp;
 		}
