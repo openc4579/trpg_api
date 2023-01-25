@@ -9,9 +9,12 @@ $id = (isset($_GET['id']) && $_GET['id'] != '') ? $_GET['id'] : '';
 
 switch($type)
 {
-    case 'raceslist':
-        $functionName = 'getRacesList';
+    case 'racesindex':
+        $functionName = 'getRacesIndex';
         break;
+	case 'raceslist':
+		$functionName = 'getRacesList';
+		break;
     case 'races':
         $functionName = 'getRaces';
         $funcParam = $id;
@@ -22,6 +25,44 @@ if($functionName != '')
 {
     $return = call_user_func($functionName, $funcParam);
     echo json_encode($return);
+}
+
+function getRacesIndex()
+{
+    global $db_connect;
+
+    $return = array();
+    $data = array();
+
+    $sql = "SELECT r.race as race, r.name as name, r.intro as intro FROM `dnd5e_races` as r ORDER BY r.race";
+    $result = mysqli_query($db_connect,$sql);
+    if ($result) 
+    {
+        if (mysqli_num_rows($result)>0) 
+        {
+            while ($row = mysqli_fetch_assoc($result)) 
+            {
+                $data[] = $row;
+            }
+        }
+        mysqli_free_result($result);
+    }
+
+    if(count($data) > 0)
+    {
+		foreach($data as $race_item)
+		{
+			$temp = array();
+			
+			$temp['key'] = (isset($race_item['race'])) ? $race_item['race'] : '';
+			$temp['name'] = (isset($race_item['name'])) ? $race_item['name'] : '';
+			$temp['intro'] = (isset($race_item['intro'])) ? $race_item['intro'] : '';
+			
+			$return[] = $temp;
+		}
+    }
+
+    return $return;
 }
 
 function getRacesList()

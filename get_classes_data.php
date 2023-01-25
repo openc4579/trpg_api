@@ -9,6 +9,9 @@ $id = (isset($_GET['id']) && $_GET['id'] != '') ? $_GET['id'] : '';
 
 switch($type)
 {
+    case 'classesindex':
+        $functionName = 'getClassesIndex';
+        break;
     case 'classeslist':
         $functionName = 'getClassesList';
         break;
@@ -22,6 +25,44 @@ if($functionName != '')
 {
     $return = call_user_func($functionName, $funcParam);
     echo json_encode($return);
+}
+
+function getClassesIndex()
+{
+    global $db_connect;
+
+    $return = array();
+    $data = array();
+
+    $sql = "SELECT c.class as class, c.name as name, c.intro as intro FROM `dnd5e_classes` as c ORDER BY c.class";
+    $result = mysqli_query($db_connect,$sql);
+    if ($result) 
+    {
+        if (mysqli_num_rows($result)>0) 
+        {
+            while ($row = mysqli_fetch_assoc($result)) 
+            {
+                $data[] = $row;
+            }
+        }
+        mysqli_free_result($result);
+    }
+
+    if(count($data) > 0)
+    {
+		foreach($data as $class_item)
+		{
+			$temp = array();
+			
+			$temp['key'] = (isset($class_item['class'])) ? $class_item['class'] : '';
+			$temp['name'] = (isset($class_item['name'])) ? $class_item['name'] : '';
+			$temp['intro'] = (isset($class_item['intro'])) ? $class_item['intro'] : '';
+			
+			$return[] = $temp;
+		}
+    }
+
+    return $return;
 }
 
 function getClassesList()
