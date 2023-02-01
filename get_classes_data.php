@@ -108,6 +108,40 @@ function getClasses($class)
 
     $return = array();
     $data = array();
+    $ability_list = array();
+    $skill_list = array();
+    
+    // ability
+    $ability_sql = "SELECT a.ability as ability, a.name as name FROM `dnd5e_abilities` as a ORDER BY a.ability";
+    $ability_result = mysqli_query($db_connect,$ability_sql);
+    if ($ability_result) 
+    {
+        if (mysqli_num_rows($ability_result)>0) 
+        {
+            while ($row = mysqli_fetch_assoc($ability_result)) 
+            {
+                $ability = $row['ability'];
+                $ability_list[$ability] = $row['name'];
+            }
+        }
+        mysqli_free_result($ability_result);
+    }
+    
+    // skill
+    $skill_sql = "SELECT s.skill as skill, s.name as name FROM `dnd5e_skills` as s ORDER BY s.skill";
+    $skill_result = mysqli_query($db_connect,$skill_sql);
+    if ($skill_result) 
+    {
+        if (mysqli_num_rows($skill_result)>0) 
+        {
+            while ($row = mysqli_fetch_assoc($skill_result)) 
+            {
+                $skill = $row['skill'];
+                $skill_list[$skill] = $row['name'];
+            }
+        }
+        mysqli_free_result($skill_result);
+    }
 
     $sql = "SELECT c.class as class, c.name as name, c.intro as intro, c.description as description, c.prof_bonus as prof_bonus, c.hp_dice as hp_dice, c.prof_armor as prof_armor, c.prof_weapon as prof_weapon, c.prof_tool as prof_tool, c.prof_saving_throw as prof_saving_throw, c.prof_skill as prof_skill, c.prof_skill_choice_num as prof_skill_choice_num, c.start_equipment as start_equipment, c.start_gold_dice as start_gold_dice, c.start_gold_dice_num as start_gold_dice_num, c.start_gold_magn as start_gold_magn, GROUP_CONCAT(s.subclass) as subclasses, GROUP_CONCAT(s.name) as subclasses_name, GROUP_CONCAT(s.description) as subclasses_description FROM  `dnd5e_classes` as c LEFT JOIN `dnd5e_subclasses` as s ON c.class = s.parent_class WHERE c.class = '$class' GROUP BY s.parent_class ORDER BY c.class";
     $result = mysqli_query($db_connect,$sql);
@@ -149,9 +183,33 @@ function getClasses($class)
         $temp_basic["prof"]["armor"] = (isset($data['prof_armor']) && $data['prof_armor'] != '') ? explode('|', $data['prof_armor']) : array();
         $temp_basic["prof"]["weapon"] = (isset($data['prof_weapon']) && $data['prof_weapon'] != '') ? explode('|', $data['prof_weapon']) : array();
         $temp_basic["prof"]["tool"] = (isset($data['prof_tool']) && $data['prof_tool'] != '') ? explode('|', $data['prof_tool']) : array();
-        $temp_basic["prof"]["saving_throw"] = (isset($data['prof_saving_throw']) && $data['prof_saving_throw'] != '') ? explode('|', $data['prof_saving_throw']) : array();
-        $temp_basic["prof"]["skill"]['choice'] = (isset($data['prof_skill']) && $data['prof_skill'] != '') ? explode('|', $data['prof_skill']) : array();
-        $temp_basic["prof"]["skill"]['choice_num'] = (isset($data['prof_skill_choice_num']) && $data['prof_skill_choice_num'] != '') ? explode('|', $data['prof_skill_choice_num']) : array();
+        $temp_basic["prof"]["saving_throw"] = array();
+        $temp_basic["prof"]["skill"]['choice'] = array();
+        $temp_basic["prof"]["skill"]['choice_num'] = (isset($data['prof_skill_choice_num']) && $data['prof_skill_choice_num'] != '') ? $data['prof_skill_choice_num'] : 0;
+
+        $saving_throw = (isset($data['prof_saving_throw']) && $data['prof_saving_throw'] != '') ? explode('|', $data['prof_saving_throw']) : array();
+        if(count($saving_throw) > 0)
+        {
+            foreach($saving_throw as $saving_ability)
+            {
+                if(isset($ability_list[$saving_ability]))
+                {
+                    $temp_basic["prof"]["saving_throw"][] = '{@link|ability-'.$saving_ability.'|'.$ability_list[$saving_ability].'}';
+                }
+            }
+        }
+
+        $skill_choices = (isset($data['prof_skill']) && $data['prof_skill'] != '') ? explode('|', $data['prof_skill']) : array();
+        if(count($skill_choices) > 0)
+        {
+            foreach($skill_choices as $skill_choice)
+            {
+                if(isset($skill_list[$skill_choice]))
+                {
+                    $temp_basic["prof"]["skill"]['choice'][] = '{@link|skill-'.$skill_choice.'|'.$skill_list[$skill_choice].'}';
+                }
+            }
+        }
 
         if(isset($data['start_equipment']) && $data['start_equipment'] != '')
         {
