@@ -161,20 +161,7 @@ function getClasses($class)
             {
                 foreach($choice_list as $choice_item)
                 {
-                    $choice_group = explode(',', $choice_item);
-					$twmp_choice = array();
-					
-                    if(count($choice_group) == 2)
-                    {
-                        $twmp_choice['a'] = $choice_group[0];
-                        $twmp_choice['b'] = $choice_group[1];
-                    }
-					else
-					{
-                        $twmp_choice['a'] = $choice_group[0];
-					}
-
-                    $choice[] = $twmp_choice;
+                    $choice[] = explode(',', $choice_item);
                 }
             }
             $temp_basic["start_equipment"]["choice"] = $choice;
