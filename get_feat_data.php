@@ -9,6 +9,9 @@ $id = (isset($_GET['id']) && $_GET['id'] != '') ? $_GET['id'] : '';
 
 switch($type)
 {
+    case 'featfilter':
+        $functionName = 'getFeatFilter';
+        break;
     case 'featlist':
         $functionName = 'getFeatList';
         break;
@@ -24,14 +27,12 @@ if($functionName != '')
     echo json_encode($return);
 }
 
-function getFeatList()
+function getFeatFilter()
 {
     global $db_connect;
 
     $return = array();
-    $data = array();
-    $skill_list = array();
-    $skill_list = array();
+    $ability_list = array();
     
     // ability
     $ability_sql = "SELECT a.ability as ability, a.name as name FROM `dnd5e_abilities` as a ORDER BY a.ability";
@@ -48,24 +49,75 @@ function getFeatList()
         }
         mysqli_free_result($ability_result);
     }
-    
-    // skill
-    $skill_sql = "SELECT s.skill as skill, s.name as name FROM `dnd5e_skills` as s ORDER BY s.skill";
-    $skill_result = mysqli_query($db_connect,$skill_sql);
-    if ($skill_result) 
+
+    $sql = "SELECT f.id as id, f.name as name, f.ability as ability, f.prerequisite as prerequisite FROM `dnd5e_features` as f WHERE f.type = 'feat'ORDER BY f.name";
+    $result = mysqli_query($db_connect,$sql);
+    if ($result) 
     {
-        if (mysqli_num_rows($skill_result)>0) 
+        if (mysqli_num_rows($result)>0) 
         {
-            while ($row = mysqli_fetch_assoc($skill_result)) 
+            while ($row = mysqli_fetch_assoc($result)) 
             {
-                $skill = $row['skill'];
-                $skill_list[$skill] = $row['name'];
+                $data[] = $row;
             }
         }
-        mysqli_free_result($skill_result);
+        mysqli_free_result($result);
     }
 
-    $sql = "SELECT f.id as id, f.name as name, f.ability as ability, f.prerequisite as prerequisite FROM `dnd5e_features` as f WHERE f.type = 'feat' ORDER BY f.name";
+    $ability = array();
+    $ability['name'] = '屬性';
+    if(count($ability_list) > 0)
+    {
+        foreach($ability_list as $key => $name)
+        {
+            $temp = array();
+            $temp['key'] = $key;
+            $temp['name'] = $name;
+
+            $ability['option'][] = $temp;
+        }
+    }
+    $return['choice']['ability'] = $ability;
+
+    $prerequisite = array();
+    $prerequisite['name'] = '先抉條件';
+
+    $prerequisite['option'] = array(
+        array('key'=>'all', 'name'=>'--'),
+        array('key'=>'has', 'name'=>'有'),
+        array('key'=>'not_has', 'name'=>'沒有')
+    );
+
+    $return['choice']['prerequisite'] = $prerequisite;
+
+    return $return;
+}
+
+function getFeatList()
+{
+    global $db_connect;
+
+    $return = array();
+    $data = array();
+    $ability_list = array();
+    
+    // ability
+    $ability_sql = "SELECT a.ability as ability, a.name as name FROM `dnd5e_abilities` as a ORDER BY a.ability";
+    $ability_result = mysqli_query($db_connect,$ability_sql);
+    if ($ability_result) 
+    {
+        if (mysqli_num_rows($ability_result)>0) 
+        {
+            while ($row = mysqli_fetch_assoc($ability_result)) 
+            {
+                $ability = $row['ability'];
+                $ability_list[$ability] = $row['name'];
+            }
+        }
+        mysqli_free_result($ability_result);
+    }
+
+    $sql = "SELECT f.id as id, f.name as name, f.ability as ability, f.prerequisite as prerequisite FROM `dnd5e_features` as f WHERE f.type = 'feat'ORDER BY f.name";
     $result = mysqli_query($db_connect,$sql);
     if ($result) 
     {
@@ -97,20 +149,26 @@ function getFeatList()
                 {
                     switch($type)
                     {
-                        case isset($skill_list[$type]):
-                            $temp['ability'] += '{@popup|ability-$type|'.$skill_list[$type].'} +1。';
+                        case isset($ability_list[$type]):
+                            $temp['ability'] .= $ability_list[$type].' +1。';
                             break;
                         case 'choose':
                             if(isset($ability_item['from']) && count($ability_item['from']) > 0 && isset($ability_item['amount']))
                             {
-                                $temp['ability'] += '選擇 ';
+                                $temp['ability'] .= '選擇 ';
+                                $isFirst = true;
                                 foreach($ability_item['from'] as $index => $ability_code)
                                 {
-                                    $temp['ability'] += ($index != 0) ? ' 或 ':';';
-                                    $temp['ability'] += '{@popup|ability-$type|'.$skill_list[$type].'}';
+                                    if(isset($ability_list[$ability_code]))
+                                    {
+                                        $temp['ability'] .= ($isFirst) ? '':'或';
+                                        $temp['ability'] .= $ability_list[$ability_code];
+                                        $isFirst = false;
+                                    }
                                 }
-                                ' +1。';
+                                $temp['ability'] .= ' +1。';
                             }
+                            break;
                     }
                 }
             }
