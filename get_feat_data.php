@@ -83,9 +83,8 @@ function getFeatFilter()
     $prerequisite['name'] = '先抉條件';
 
     $prerequisite['option'] = array(
-        array('key'=>'all', 'name'=>'--'),
-        array('key'=>'has', 'name'=>'有'),
-        array('key'=>'not_has', 'name'=>'沒有')
+        array('key'=>'Y', 'name'=>'有'),
+        array('key'=>'N', 'name'=>'沒有')
     );
 
     $return['choice']['prerequisite'] = $prerequisite;
@@ -140,6 +139,7 @@ function getFeatList()
 			$temp['key'] = (isset($feat_item['id'])) ? $feat_item['id'] : '';
 			$temp['name'] = (isset($feat_item['name'])) ? $feat_item['name'] : '';
 			$temp['ability'] = '';
+			$temp['ability_name'] = '';
 			$temp['prerequisite'] = (isset($feat_item['prerequisite'])) ? $feat_item['prerequisite'] : '';
 
             $ability = (isset($feat_item['ability']) && $feat_item['ability'] != '') ? json_decode($feat_item['ability'], true) : array();
@@ -150,23 +150,26 @@ function getFeatList()
                     switch($type)
                     {
                         case isset($ability_list[$type]):
-                            $temp['ability'] .= $ability_list[$type].' +1。';
+                            $temp['ability'] = $type;
+                            $temp['ability_name'] .= $ability_list[$type].' +1。';
                             break;
                         case 'choose':
                             if(isset($ability_item['from']) && count($ability_item['from']) > 0 && isset($ability_item['amount']))
                             {
-                                $temp['ability'] .= '選擇 ';
+                                $temp['ability'] = implode(',',$ability_item['from']);
+                                $temp['ability_name'] .= '選擇 ';
+                                $temp['ability_name'] .= $ability_item['amount'].'個 ';
                                 $isFirst = true;
                                 foreach($ability_item['from'] as $index => $ability_code)
                                 {
                                     if(isset($ability_list[$ability_code]))
                                     {
-                                        $temp['ability'] .= ($isFirst) ? '':'或';
-                                        $temp['ability'] .= $ability_list[$ability_code];
+                                        $temp['ability_name'] .= ($isFirst) ? '':'或';
+                                        $temp['ability_name'] .= $ability_list[$ability_code];
                                         $isFirst = false;
                                     }
                                 }
-                                $temp['ability'] .= ' +1。';
+                                $temp['ability_name'] .= ' +1。';
                             }
                             break;
                     }
